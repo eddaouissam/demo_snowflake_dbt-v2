@@ -2,6 +2,7 @@ name: PR Accepted Deployment
 run-name: PR from ${{ github.actor }} accepted - triggered a ${{ github.event_name }}
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
 

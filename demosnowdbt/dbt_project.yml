@@ -16,4 +16,9 @@ snapshot-paths:
   - snapshots
 models:
   demosnowdbt:
-    +materialized: view
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts

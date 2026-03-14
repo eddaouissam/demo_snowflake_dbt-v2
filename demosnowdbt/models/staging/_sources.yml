@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: tpch
+    database: SNOWFLAKE_SAMPLE_DATA
+    schema: TPCH_SF1
+    tables:
+      - name: customer
+        description: Customer data as defined by TPC-H
+      - name: orders
+        description: Orders data as defined by TPC-H
+      - name: lineitem
+        description: Lineitem data as defined by TPC-H
+      - name: nation
+        description: Nation data as defined by TPC-H
+      - name: region
+        description: Region data as defined by TPC-H
+      - name: part
+        description: Part data as defined by TPC-H
+      - name: partsupp
+        description: Part supplier data as defined by TPC-H
+      - name: supplier
+        description: Supplier data as defined by TPC-H

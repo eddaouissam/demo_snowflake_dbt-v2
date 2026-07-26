@@ -1,0 +1,29 @@
+# version: 2
+
+# models:
+#   - name: stg_example
+#     description: >
+#       Minimal smoke-test model from the V2 CI/CD article. Kept on purpose :
+#       touching this file is the quickest way to trigger and validate the
+#       CI/CD pipeline end to end.
+
+#   - name: stg_customers
+#     description: Cleaned customers, one row per customer.
+#     columns:
+#       - name: customer_id
+#         data_tests:
+#           - unique
+#           - not_null
+
+#   - name: stg_orders
+#     description: Cleaned orders, one row per order.
+#     columns:
+#       - name: order_id
+#         data_tests:
+#           - unique
+#           - not_null
+#       - name: order_status
+#         data_tests:
+#           - accepted_values:
+#               arguments:
+#                 values: ['completed', 'returned', 'cancelled']

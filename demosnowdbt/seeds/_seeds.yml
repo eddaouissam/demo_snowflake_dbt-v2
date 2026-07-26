@@ -1,0 +1,26 @@
+version: 2
+
+seeds:
+  - name: raw_customers
+    description: >
+      Raw customer master data. Loaded with `dbt seed` so the demo is fully
+      self-contained (no dependency on SNOWFLAKE_SAMPLE_DATA).
+    columns:
+      - name: customer_id
+        description: Unique customer identifier.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: raw_orders
+    description: Raw order transactions, one row per order.
+    columns:
+      - name: order_id
+        description: Unique order identifier.
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to raw_customers.
+        data_tests:
+          - not_null

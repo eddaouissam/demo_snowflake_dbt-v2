@@ -76,6 +76,40 @@ GRANT CREATE DBT PROJECT ON SCHEMA DBT_DEV_DB.DBT_SCHEMA TO ROLE DBT_ROLE;
 GRANT CREATE DBT PROJECT ON SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE DBT_ROLE;
 
 -- ============================================
+-- STEP 6b : Semantic View Permissions
+-- ============================================
+-- SEMANTIC VIEW is a distinct object type : grant creation explicitly
+-- (GRANT ALL covers it today, but being explicit survives permission refactors)
+
+GRANT CREATE SEMANTIC VIEW ON SCHEMA DBT_DEV_DB.DBT_SCHEMA TO ROLE DBT_ROLE;
+GRANT CREATE SEMANTIC VIEW ON SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE DBT_ROLE;
+
+-- Optional : give an analyst / BI role read access to semantic views only.
+-- Semantic views run with owner's rights, so SELECT on the semantic view
+-- is enough — no grants needed on the underlying tables.
+-- GRANT SELECT ON FUTURE SEMANTIC VIEWS IN SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE ANALYST_ROLE;
+
+-- ============================================
+-- STEP 6c : External Access Integration for dbt deps
+-- ============================================
+-- The dbt_semantic_view package (packages.yml) is installed by `dbt deps`
+-- running INSIDE Snowflake. Snowflake needs egress to the dbt package hub :
+
+-- Network rules are schema-level objects, hence the full qualification
+CREATE OR REPLACE NETWORK RULE DBT_PROD_DB.DBT_SCHEMA.DBT_HUB_NETWORK_RULE
+  MODE = EGRESS
+  TYPE = HOST_PORT
+  VALUE_LIST = ('hub.getdbt.com', 'codeload.github.com');
+
+-- External access integrations are account-level objects
+CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION DBT_HUB_INTEGRATION
+  ALLOWED_NETWORK_RULES = (DBT_PROD_DB.DBT_SCHEMA.DBT_HUB_NETWORK_RULE)
+  ENABLED = TRUE
+  COMMENT = 'Allows dbt deps to pull packages from the dbt hub';
+
+GRANT USAGE ON INTEGRATION DBT_HUB_INTEGRATION TO ROLE DBT_ROLE;
+
+-- ============================================
 -- STEP 7 : Source Data Access
 -- ============================================
 -- If your dbt models read from SNOWFLAKE_SAMPLE_DATA or another source DB :

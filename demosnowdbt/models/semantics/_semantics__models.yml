@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: sem_orders
+    description: >
+      Native Snowflake semantic view over fct_orders and dim_customers.
+      Defines governed facts, dimensions and metrics consumable by SQL,
+      BI tools and Cortex Analyst / AI agents.
+      Note : persist_docs is not supported for semantic views by the
+      dbt_semantic_view package — the object comment is set with the
+      COMMENT clause inside the model itself.
+
+  - name: rpt_revenue_by_region
+    description: >
+      Revenue / order count / AOV by region and segment, computed FROM the
+      semantic view. Acts as an integration test of the semantic layer :
+      if the semantic view definition breaks, this model (and its tests) fail.
+    columns:
+      - name: region
+        data_tests:
+          - not_null
+      - name: total_revenue
+        data_tests:
+          - not_null

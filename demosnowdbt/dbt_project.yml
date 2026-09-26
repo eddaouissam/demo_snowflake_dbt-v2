@@ -2,6 +2,7 @@ name: demosnowdbt
 version: 1.0.0
 config-version: 2
 profile: demosnowdbt
+
 model-paths:
   - models
 analysis-paths:
@@ -14,6 +15,14 @@ macro-paths:
   - macros
 snapshot-paths:
   - snapshots
+
 models:
   demosnowdbt:
-    +materialized: view
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+    semantics:
+      # sem_* models set materialized='semantic_view' in their config block ;
+      # anything else in this folder defaults to table (e.g. rpt_ consumers)
+      +materialized: table

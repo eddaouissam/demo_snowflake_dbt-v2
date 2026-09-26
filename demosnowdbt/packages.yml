@@ -1,4 +1,7 @@
-# Uncomment the lines below and run dbt deps to use the Snowflake semantic view materialization
-# packages:
-#   - package: Snowflake-Labs/dbt_semantic_view
-#     version: 1.0.3
+# Snowflake-Labs package that adds the `semantic_view` materialization.
+# Resolved at deploy/execute time on Snowflake — this requires the
+# DBT_HUB_INTEGRATION external access integration (see config_scripts/Setup Snow.sql)
+# to be passed to `snow dbt deploy` so Snowflake can reach hub.getdbt.com.
+packages:
+  - package: Snowflake-Labs/dbt_semantic_view
+    version: 1.0.3

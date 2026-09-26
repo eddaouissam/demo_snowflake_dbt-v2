@@ -23,6 +23,8 @@ jobs:
       SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
       SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
       SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+      # secrets can't be used in step-level `if:` -> expose a boolean instead
+      HAS_ICEBERG_READER_KEY: ${{ secrets.ICEBERG_READER_PRIVATE_KEY != '' }}
 
     steps:
       - name: Check out repository code
@@ -43,8 +45,30 @@ jobs:
       - name: List all dbt project objects
         run: snow dbt list -x
 
+      - name: Load seed data on tester project
+        run: snow dbt execute -x demosnowdbt_tester_gh_action seed --target dev
+
       - name: Execute dbt run on tester project
         run: snow dbt execute -x demosnowdbt_tester_gh_action run --target dev
 
       - name: Execute dbt test on tester project
         run: snow dbt execute -x demosnowdbt_tester_gh_action test --target dev
+
+      # Proof of openness : read the Iceberg tables dbt just built from OUTSIDE
+      # Snowflake (PyIceberg + DuckDB through the Horizon Iceberg REST catalog).
+      # Skipped if the ICEBERG_READER_PRIVATE_KEY secret isn't configured.
+      - name: Set up Python
+        if: env.HAS_ICEBERG_READER_KEY == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read Iceberg tables from an external engine
+        if: env.HAS_ICEBERG_READER_KEY == 'true'
+        env:
+          ICEBERG_READER_PRIVATE_KEY: ${{ secrets.ICEBERG_READER_PRIVATE_KEY }}
+          ICEBERG_DATABASE: DBT_DEV_DB
+          ICEBERG_SCHEMA: DBT_SCHEMA
+        run: |
+          pip install "pyiceberg[pyarrow,duckdb]==0.12.*" pyjwt cryptography
+          python scripts/read_iceberg_from_outside.py

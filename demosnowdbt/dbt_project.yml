@@ -16,12 +16,22 @@ macro-paths:
 snapshot-paths:
   - snapshots
 
+flags:
+  # Required since dbt 1.9 : lets dbt detect Iceberg tables (is_iceberg) and
+  # build them. Without it, table_format='iceberg' is rejected.
+  enable_iceberg_materializations: true
+
 models:
   demosnowdbt:
     staging:
       +materialized: view
     marts:
       +materialized: table
+      # Every mart is an Apache Iceberg table stored by Snowflake itself :
+      # open format (Parquet + Iceberg metadata), no S3 bucket, no external volume
+      # to configure. Readable by Spark / PyIceberg / DuckDB via the Horizon catalog.
+      +table_format: iceberg
+      +external_volume: SNOWFLAKE_MANAGED
     semantics:
       # sem_* models set materialized='semantic_view' in their config block ;
       # anything else in this folder defaults to table (e.g. rpt_ consumers)

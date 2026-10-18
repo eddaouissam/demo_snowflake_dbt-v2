@@ -40,7 +40,7 @@ jobs:
         run: snow connection test -x
 
       - name: Create a tester dbt project object
-        run: snow dbt deploy --dbt--version 1.11.11 demosnowdbt_tester_gh_action --source ./demosnowdbt --force -x --dbt--version 1.11.11
+        run: snow dbt deploy --dbt--version 1.11.11 demosnowdbt_tester_gh_action --source ./demosnowdbt --force -x --dbt-version 1.11.11
 
       - name: List all dbt project objects
         run: snow dbt list -x

@@ -38,7 +38,7 @@ jobs:
         run: snow connection test -x
 
       - name: Deploy dbt project object to production
-        run: snow dbt deploy demosnowdbt_prod_gh_action --source ./demosnowdbt --default-target prod --force -x
+        run: snow dbt deploy demosnowdbt_prod_gh_action --source ./demosnowdbt --default-target prod --force -x --dbt--version 1.11.11
 
       - name: List all dbt project objects
         run: snow dbt list -x

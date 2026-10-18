@@ -110,6 +110,69 @@ CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION DBT_HUB_INTEGRATION
 GRANT USAGE ON INTEGRATION DBT_HUB_INTEGRATION TO ROLE DBT_ROLE;
 
 -- ============================================
+-- STEP 6d : Apache Iceberg tables (Snowflake storage)
+-- ============================================
+-- The marts + rpt_revenue_by_region are materialized as Iceberg tables with
+-- EXTERNAL_VOLUME = SNOWFLAKE_MANAGED : Snowflake stores the Parquet data +
+-- Iceberg metadata itself. No S3 bucket, no IAM role, no external volume.
+-- (AWS & Azure commercial regions only — GCP accounts need a real external volume.)
+--
+-- ICEBERG TABLE is its own object type : grant creation explicitly.
+
+GRANT CREATE ICEBERG TABLE ON SCHEMA DBT_DEV_DB.DBT_SCHEMA TO ROLE DBT_ROLE;
+GRANT CREATE ICEBERG TABLE ON SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE DBT_ROLE;
+
+-- Optional : bring your own bucket instead (S3 example). If you go this way,
+-- set external_volume = 'DBT_S3_VOLUME' in dbt_project.yml : dbt then writes
+-- to <bucket>/_dbt/<schema>/<model>/ (base_location is kept for real volumes).
+--
+-- CREATE EXTERNAL VOLUME DBT_S3_VOLUME
+--   STORAGE_LOCATIONS = ((
+--     NAME = 'dbt-iceberg-s3'
+--     STORAGE_PROVIDER = 'S3'
+--     STORAGE_BASE_URL = 's3://<your-bucket>/iceberg/'
+--     STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::<account-id>:role/<snowflake-iceberg-role>'
+--   ));
+-- GRANT USAGE ON EXTERNAL VOLUME DBT_S3_VOLUME TO ROLE DBT_ROLE;
+
+-- ============================================
+-- STEP 6e : External engine access (Horizon Iceberg REST catalog)
+-- ============================================
+-- An external engine (PyIceberg + DuckDB in scripts/read_iceberg_from_outside.py)
+-- reads the Iceberg tables through Snowflake Horizon Catalog :
+--   https://<ORGNAME-ACCOUNTNAME>.snowflakecomputing.com/polaris/api/catalog
+-- It gets its OWN identity : a read-only role + a SERVICE user (key-pair auth).
+-- Horizon applies the role's grants : no SELECT grant -> no data.
+
+CREATE ROLE IF NOT EXISTS ICEBERG_READER_ROLE
+  COMMENT = 'Read-only access to dbt Iceberg tables for external engines';
+
+GRANT USAGE ON DATABASE DBT_DEV_DB  TO ROLE ICEBERG_READER_ROLE;
+GRANT USAGE ON DATABASE DBT_PROD_DB TO ROLE ICEBERG_READER_ROLE;
+GRANT USAGE ON SCHEMA DBT_DEV_DB.DBT_SCHEMA  TO ROLE ICEBERG_READER_ROLE;
+GRANT USAGE ON SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE ICEBERG_READER_ROLE;
+
+-- dbt does CREATE OR REPLACE on every run : FUTURE grants re-apply SELECT
+-- automatically to each newly (re)created Iceberg table. ALL covers existing ones.
+GRANT SELECT ON FUTURE ICEBERG TABLES IN SCHEMA DBT_DEV_DB.DBT_SCHEMA  TO ROLE ICEBERG_READER_ROLE;
+GRANT SELECT ON FUTURE ICEBERG TABLES IN SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE ICEBERG_READER_ROLE;
+GRANT SELECT ON ALL ICEBERG TABLES IN SCHEMA DBT_DEV_DB.DBT_SCHEMA  TO ROLE ICEBERG_READER_ROLE;
+GRANT SELECT ON ALL ICEBERG TABLES IN SCHEMA DBT_PROD_DB.DBT_SCHEMA TO ROLE ICEBERG_READER_ROLE;
+
+-- Service user, key-pair only (no password). Generate the key pair locally :
+--   openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out iceberg_reader_key.p8 -nocrypt
+--   openssl rsa -in iceberg_reader_key.p8 -pubout -out iceberg_reader_key.pub
+-- Paste the public key body (without the BEGIN/END lines) below.
+-- Note : user-level network policies are NOT supported by the Horizon endpoint.
+CREATE USER IF NOT EXISTS ICEBERG_READER
+  TYPE = SERVICE
+  DEFAULT_ROLE = ICEBERG_READER_ROLE
+  RSA_PUBLIC_KEY = '<paste-public-key-here>'
+  COMMENT = 'External engine identity for the Horizon Iceberg REST catalog';
+
+GRANT ROLE ICEBERG_READER_ROLE TO USER ICEBERG_READER;
+
+-- ============================================
 -- STEP 7 : Source Data Access
 -- ============================================
 -- If your dbt models read from SNOWFLAKE_SAMPLE_DATA or another source DB :

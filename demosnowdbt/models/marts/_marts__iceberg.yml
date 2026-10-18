@@ -1,0 +1,19 @@
+version: 2
+
+# Tests for the Iceberg-specific mart. Written without the `arguments:` key
+# so they parse on every dbt Core version dbt Projects on Snowflake supports.
+
+models:
+  - name: fct_daily_revenue
+    description: >
+      Daily revenue and order count. Incremental (MERGE on order_date) model
+      stored as a Snowflake-managed Apache Iceberg table.
+    columns:
+      - name: order_date
+        description: Grain of the table — one row per day.
+        data_tests:
+          - unique
+          - not_null
+      - name: daily_revenue
+        data_tests:
+          - not_null
